@@ -9,7 +9,7 @@ use URI::Escape;
 use Encode qw(encode decode is_utf8);
 use Lingua::Translit;
 
-my $tr = new Lingua::Translit("ALA-LC RUS");
+my $tr = new Lingua::Translit("GOST 7.79 RUS");
 
 my %ignore_list = ("Музыка" => "", "Новый плейлист 1" => "");
 
@@ -45,7 +45,7 @@ while(($playlist_key,$playlist_value) = each %playlists){
 	if  ($playlist_value->{'items'} )  
 	{
 
-	print "Processing playlist: ";
+	print "==================================================================\nProcessing playlist: ";
 
 	# encode any strings being printed into cp866 as Windows's command line emulator uses this encoding
 	print encode("cp866", $playlist_value->name());
@@ -76,18 +76,39 @@ while(($playlist_key,$playlist_value) = each %playlists){
 	{
 		foreach my $item (@items)
 		{
-		#	print "   ";
-		#	print $item->name();
-		#	print "  ";
-		#	if ($item->album)
-		#	{
-		#		print $item->album();
-		#		print "  ";
-		#	}
-#			my $true_location = $item->location();
-#			$true_location =~ s/file:\/\/localhost\///gi;
-#			print uri_unescape($true_location);
-#			print "\n";
+			#print "   ";
+			#print encode("cp866",$item->name());
+			#print "  ";
+			if ($item->album)
+			{
+			#	print encode("cp866",$item->album());
+			#	print "  ";
+			}
+			my $true_location = $item->location();
+			$true_location =~ s/file:\/\/localhost\///gi;
+			$true_location = uri_unescape($true_location);
+			#print encode("cp866", (decode("utf-8", $true_location)));
+			print "\n";
+
+			my $copy_cmd = "copy \"" . encode("cp1251", (decode("utf-8", $true_location))) . "\" \""; # . $dest_dir . "\/";
+
+			if ($translit)
+			{	
+				$copy_cmd = $copy_cmd . encode("cp1251", $tr->translit($playlist_value->name())) . "\/"; 
+				if ($item->album)
+				{
+					$copy_cmd = $copy_cmd . encode("cp1251",$tr->translit($item->album())) . " ";
+				}
+				$copy_cmd = $copy_cmd . encode("cp1251",$tr->translit($item->name())) . ".mp3\"";
+			}
+			else
+			{
+				$copy_cmd = $copy_cmd . encode("cp1251",$playlist_value->name()) . "\/" . encode("cp1251",$item->name()) . ".mp3\""; 
+			}
+			$copy_cmd =~ s/\//\\/gi;
+			print $copy_cmd . "\n";
+			my @copy_res = `$copy_cmd`;
+			print @copy_res;
 		}
 	
 	}
