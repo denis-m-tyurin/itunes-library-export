@@ -76,41 +76,130 @@ while(($playlist_key,$playlist_value) = each %playlists){
 	{
 		foreach my $item (@items)
 		{
-			#print "   ";
-			#print encode("cp866",$item->name());
-			#print "  ";
-			if ($item->album)
-			{
-			#	print encode("cp866",$item->album());
-			#	print "  ";
-			}
+		#	print "   ";
+		#	if ($item->album)
+		#	{
+		#		print encode("cp866",$item->album());
+		#		print "  ";
+		#	}
+		#	if ($item->artist)
+		#	{
+		#		print encode("cp866",$item->artist());
+		#		print "  ";
+		#	}
+		#	print encode("cp866",$item->name());
+		#	print "  ";
+
 			my $true_location = $item->location();
 			$true_location =~ s/file:\/\/localhost\///gi;
 			$true_location = uri_unescape($true_location);
-			#print encode("cp866", (decode("utf-8", $true_location)));
+			print encode("cp866", (decode("utf-8", $true_location)));
 			print "\n";
 
 			my $copy_cmd = "copy \"" . encode("cp1251", (decode("utf-8", $true_location))) . "\" \""; # . $dest_dir . "\/";
 
+			my $new_file_name = "";
+			my $check_full_path = "";
+
 			if ($translit)
 			{	
-				$copy_cmd = $copy_cmd . encode("cp1251", $tr->translit($playlist_value->name())) . "\/"; 
-				if ($item->album)
+				# Translit file name
+				$copy_cmd = $copy_cmd . encode("cp1251",$tr->translit($playlist_value->name())) . "\/";
+
+				if ($item->artist)
 				{
-					$copy_cmd = $copy_cmd . encode("cp1251",$tr->translit($item->album())) . " ";
+					$new_file_name = encode("cp1251",$tr->translit($item->artist())) . " - ";
 				}
-				$copy_cmd = $copy_cmd . encode("cp1251",$tr->translit($item->name())) . ".mp3\"";
+
+				my $check_name = $new_file_name . encode("cp1251",$tr->translit($item->name())) . ".mp3";
+				$check_full_path = encode("cp1251",$tr->translit($playlist_value->name())) . "\/" . $check_name;
+				my $postfix = 1;
+					
+				while (-e $check_full_path)
+				{
+					$check_name = $new_file_name . encode("cp1251",$tr->translit($item->name())) . "_" . $postfix . ".mp3\"";
+					$check_full_path = encode("cp1251",$tr->translit($playlist_value->name())) . "\/" . $check_name;					
+					$postfix = $postfix + 1;
+				}
+			
+				$new_file_name = $check_name;	
+				
 			}
 			else
 			{
-				$copy_cmd = $copy_cmd . encode("cp1251",$playlist_value->name()) . "\/" . encode("cp1251",$item->name()) . ".mp3\""; 
+				# Do not translit file name
+				$copy_cmd = $copy_cmd . encode("cp1251",$playlist_value->name()) . "\/";
+
+				if ($item->artist)
+				{
+					$new_file_name = encode("cp1251",$item->artist()) . " - ";
+				}
+
+				my $check_name = $new_file_name . encode("cp1251",$item->name()) . ".mp3";
+				$check_full_path = encode("cp1251",$playlist_value->name()) . "\/" . $check_name;
+				my $postfix = 1;
+					
+				while (-e $check_full_path)
+				{
+					$check_name = $new_file_name . encode("cp1251",$item->name()) . "_" . $postfix . ".mp3\"";
+					$check_full_path = encode("cp1251",$playlist_value->name()) . "\/" . $check_name;					
+					$postfix = $postfix + 1;
+				}
+			
+				$new_file_name = $check_name;				
 			}
+
+			$copy_cmd = $copy_cmd . $new_file_name . "\""; 			
 			$copy_cmd =~ s/\//\\/gi;
-			print $copy_cmd . "\n";
 			my @copy_res = `$copy_cmd`;
 			print @copy_res;
+
+			# TODO: check if copy was successful
+
+			# replace tags only if they are not empty
+        	if (( $item->artist) || ( $item->album ) || ( $item->name ))
+        	{
+                my $updatetagscmd = "mp3info2";
+
+                if ($item->artist)
+                {
+                		if ($translit)
+                		{
+	                		$updatetagscmd .= " -a \"" . encode("cp1251", $tr->translit($item->artist)). "\"";
+                		} else {
+                			$updatetagscmd .= " -a \"" . encode("cp1251", $item->artist). "\"";
+                		}
+                }
+
+                if ($item->name)
+                {
+                        
+                		if ($translit)
+                		{
+	                		$updatetagscmd .= " -t \"" . encode("cp1251", $tr->translit($item->name)). "\"";
+                		} else {
+                			$updatetagscmd .= " -t \"" . encode("cp1251", $item->name). "\"";
+                		}
+                        
+                }
+
+                if ($item->album)
+                {                        
+                        if ($translit)
+                		{
+	                		$updatetagscmd .= " -l \"" . encode("cp1251", $tr->translit($item->album)). "\"";
+                		} else {
+                			$updatetagscmd .= " -l \"" . encode("cp1251", $item->album). "\"";
+                		}
+                        
+                }
+
+                $updatetagscmd .= " \"$check_full_path\"";
+                my @sreplacetags = `$updatetagscmd`;
+                print @sreplacetags;
+        	}	
+
 		}
-	
 	}
 
 	}
