@@ -11,7 +11,7 @@ use Lingua::Translit;
 
 my $tr = new Lingua::Translit("GOST 7.79 RUS");
 
-my %ignore_list = ("Музыка" => "", "Новый плейлист 1" => "", "Голосовые записи" => "", "Подкасты" => "", "Genius" => "", "iTunes DJ" => "", );
+my %ignore_list = ("Музыка" => "", "Новый плейлист 1" => "", "Голосовые записи" => "", "Подкасты" => "", "Genius" => "", "iTunes DJ" => "", "Медиатека" => "");
 
 my $usage = "Usage: export_library.pl <library.xml> <destination_dir> [--translit]\n";
 
